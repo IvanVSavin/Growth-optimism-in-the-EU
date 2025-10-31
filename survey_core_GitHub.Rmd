@@ -1,0 +1,2008 @@
+---
+title: "Views of EU citizens on economic growth and implications for climate policy "
+author: "Ivan Savin"
+date: "31/10/2025"
+output: word_document
+
+---
+
+<style type="text/css">
+body, td {
+   font-size: 20px;
+}
+code.r{ / Code block /
+    font-size: 6px;
+}
+</style>
+
+```{r echo=FALSE}
+rm(list=ls())
+setwd("D:/Projects/3_CurrentProjects/CAPABLE/wp2/Core Module Round 1 Data")#D:/Scientific survey
+sapply(c("magrittr", "data.table", 'plyr','dplyr', 'ggplot2', 'cluster','knitr', 'dendextend','pkgbuild','devtools','R.methodsS3','stm','ngram','matrixStats','corrplot','ggpubr','wordcloud','readxl','tm'), require, character.only = T)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+library(lattice)
+library(webshot)
+#webshot::install_phantomjs()
+
+knitr::opts_chunk$set(fig.width=7, fig.height=5,dpi=300) #10 15
+
+data<-read.csv('Capable Core Survey Round 1 (version 2.0).csv', header=T, sep=',')
+
+openquestion<-0
+if (openquestion==1){
+#data$open_question <- sapply(data$open_question, function(x) { gsub("[\r\n]", " ", x) })
+
+length(which(data$open_q_display==2))
+length(which(data$open_q_display==1))
+
+#OQs<-data$open_policy[which(data$open_q_display!=0)]
+#length(which(OQs!=""))
+#table(data$cntry[which(OQs!="")])
+
+
+length(which(data$open_policy!="-97" & !is.na(data$open_policy)))
+
+data$length_txt<-sapply(1:length(data$open_policy), function(x) wordcount(data$open_policy[x]))
+table(data$cntry[which(data$open_policy!="-97" & !is.na(data$open_policy))])
+
+
+data$open_policy[which(data$open_policy!="-97" & !is.na(data$open_policy))]
+summary(data$length_txt[which(data$open_policy!="-97" & !is.na(data$open_policy))])
+summary(data$length_txt[which(data$open_policy!="-97" & !is.na(data$open_policy) & data$cntry=="DE")])
+summary(data$length_txt[which(data$open_policy!="-97" & !is.na(data$open_policy) & data$cntry=="FR")])
+}
+
+
+#gender
+
+data$env_grow_pos1[which(data$env_grow_pos1==-99)]<-NA
+data$env_grow_pos2[which(data$env_grow_pos2==-99)]<-NA
+data$env_grow_pos3[which(data$env_grow_pos3==-99)]<-NA
+data$env_grow_pos4[which(data$env_grow_pos4==-99)]<-NA
+
+
+
+data <- data %>% 
+  mutate(
+    quota_group_educ = case_when(
+      
+      # Prefer not to answer to NA
+      quota_educ < 0 ~ NA, 
+      
+      # System 1
+      (cntry == "AT" | cntry == "DK" | cntry == "GR" | cntry == "HU" | cntry == "IT" | cntry == "PL" | cntry == "SI") &
+        quota_educ == 1 ~ 1, 
+      
+      (cntry == "AT" | cntry == "DK" | cntry == "GR" | cntry == "HU" | cntry == "IT" | cntry == "PL" | cntry == "SI") &
+        quota_educ == 2 ~ 2, 
+      
+      (cntry == "AT" | cntry == "DK" | cntry == "GR" | cntry == "HU" | cntry == "IT" | cntry == "PL" | cntry == "SI") &
+        quota_educ == 3 ~ 2, 
+      
+      (cntry == "AT" | cntry == "DK" | cntry == "GR" | cntry == "HU" | cntry == "IT" | cntry == "PL" | cntry == "SI") &
+        quota_educ > 3 ~ 3, 
+      
+      # System 2
+      (cntry == "NL" | cntry == "FR") &
+        quota_educ > 0 & quota_educ < 4 ~ 1,       
+      
+      (cntry == "NL" | cntry == "FR") &
+        quota_educ > 3 & quota_educ < 6 ~ 2,
+      
+      (cntry == "NL" | cntry == "FR") &
+        quota_educ > 5 ~ 3,
+      
+      # System 3 
+      cntry == "DE" &
+        quota_educ > 0 & quota_educ < 3 ~ 1,       
+      
+      cntry == "DE" &
+        quota_educ > 2 & quota_educ < 7 ~ 2, 
+      
+      cntry == "DE" &
+        quota_educ > 6 ~ 3, 
+      
+      # CUNI
+      cntry == "CZ" & 
+        quota_educ > 0 &  quota_educ < 5 ~ 1, 
+       cntry == "CZ" & 
+        quota_educ > 4 &  quota_educ < 8 ~ 2,
+       cntry == "CZ" & 
+        quota_educ > 7 ~ 3,
+      
+      cntry == "ES" & 
+        quota_educ > 0 &  quota_educ < 7 ~ 1, 
+       cntry == "ES" & 
+        quota_educ > 6 &  quota_educ < 10 ~ 2,
+       cntry == "ES" & 
+        quota_educ > 9 ~ 3,
+      
+      cntry == "SE" & 
+        quota_educ == 1 ~ 1, 
+       cntry == "SE" & 
+        quota_educ > 1 &  quota_educ < 4 ~ 2,
+       cntry == "SE" & 
+        quota_educ > 3 ~ 3,
+    )
+  )
+
+data <- data %>% 
+  mutate(
+    hh_inc_wth = case_when(hh_inc < 0 ~ NA, hh_inc > 0 ~ hh_inc)
+  )
+
+
+data_clean<-data[,-c(1,4,6,9:22,35:39,51,62,74:89,92:93,101:120,126:129,131:139)]
+colnames(data_clean)[52:55]<-c("envgrow_pos1","envgrow_pos2","envgrow_pos3","envgrow_pos4")
+table(data_clean$quota_gndr)
+data_clean$quota_gndr[which(data_clean$quota_gndr==3)]<-NA #removing nonbinary
+data_clean$quota_gndr[which(data_clean$quota_gndr==4)]<-NA
+
+
+
+summary(data_clean)
+
+
+
+length(which(!is.na(data$env_grow_pos1) & !is.na(data$env_grow_pos2) & !is.na(data$env_grow_pos3) & !is.na(data$env_grow_pos4)))
+
+
+length(which(!is.na(data$env_grow_pos1) & !is.na(data$env_grow_pos2) & !is.na(data$env_grow_pos3)))
+
+summary(data$env_grow_pos1)
+summary(data$env_grow_pos2)
+summary(data$env_grow_pos3)
+summary(data$env_grow_pos4)
+
+table(data_clean$cntry)
+
+```
+
+```{r, echo=FALSE}
+
+data_clust<-data_clean[-c(which(is.na(data_clean[,52])),which(is.na(data_clean[,53])),which(is.na(data_clean[,54])),which(is.na(data_clean[,55]))),c(1,52,54,53,55)]
+#elbow method to decide how many clusters we need
+
+set.seed(0123)
+inter <- c()
+for (i in 1:10) {
+  inter <- c(inter, kmeans(data_clust[,2:4],i)$tot.withinss)
+  
+}
+plot(1:i, inter, type = "b")
+(inter / inter[1]) %>% diff(1) * 100
+lines(c(2,10), inter[c(2,10)], col = "blue")
+lines(c(3,10), inter[c(3,10)], col = "blue")
+lines(c(4,10), inter[c(4,10)], col = "blue")
+lines(c(5,10), inter[c(5,10)], col = "blue")
+lines(c(6,10), inter[c(6,10)], col = "blue")
+lines(c(7,10), inter[c(7,10)], col = "blue")
+lines(c(8,10), inter[c(8,10)], col = "blue")
+lines(c(9,10), inter[c(9,10)], col = "blue")
+
+#seems like we have elbow at 2, but more interested in 4 clusters
+
+kmeans <- kmeans(data_clust[2:5], 4)
+centers <- kmeans$centers
+centers
+
+#table(kmeans$cluster) # more or less equally distributed 
+
+data_clust$cluster <- kmeans$cluster
+data_clust$cluster[which(kmeans$cluster==1)]<-2
+data_clust$cluster[which(kmeans$cluster==2)]<-4
+data_clust$cluster[which(kmeans$cluster==3)]<-3
+data_clust$cluster[which(kmeans$cluster==4)]<-1
+
+table(data_clust$cluster) # more or less equally distributed 
+
+par(mfrow = c(1, 1) ,mar=c(2,2,2,2))
+
+data_clust_long<-reshape(data_clust, direction = "long", varying = names(data_clust)[2:5], idvar = "Response.ID", sep="_",timevar="Question")
+#plotting responses with respect to resulted clustering
+p <- ggplot(data = data_clust_long, aes(x=Question, y=envgrow)) +
+  geom_boxplot(aes(fill=as.factor(cluster)))
+p + facet_wrap( ~ Question, scales="free")+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+
+library(poLCA)
+#?poLCA
+
+
+colnames(data_clust)<-c("ID","envgrow_EnvironmentalProtection","envgrow_Stability","envgrow_PublicServices","envgrow_LifeSatisfaction")
+f<-with(data_clust, cbind(envgrow_EnvironmentalProtection,envgrow_Stability,envgrow_PublicServices,envgrow_LifeSatisfaction)~1) 
+#1 2 4 9 6 5 4 3 2
+justloaddata<-1
+
+if(justloaddata==0){
+set.seed(01012)
+lc1 <- poLCA(f, maxiter=1000, nclass=1, nrep=10, data=data_clust, verbose=FALSE)
+lc2 <- poLCA(f, maxiter=1000, nclass=2, nrep=10, data=data_clust, verbose=FALSE)
+lc3 <- poLCA(f, maxiter=1000, nclass=3, nrep=10, data=data_clust, verbose=FALSE)
+lc4 <- poLCA(f, maxiter=1000, nclass=4, nrep=10, data=data_clust, verbose=FALSE)
+lc5 <- poLCA(f, maxiter=1000, nclass=5, nrep=10, data=data_clust, verbose=FALSE)
+lc6 <- poLCA(f, maxiter=1000, nclass=6, nrep=10, data=data_clust, verbose=FALSE)
+lc7 <- poLCA(f, maxiter=1000, nclass=7, nrep=10, data=data_clust, verbose=FALSE)
+lc8 <- poLCA(f, maxiter=1000, nclass=8, nrep=10, data=data_clust, verbose=FALSE)
+lc9 <- poLCA(f, maxiter=1000, nclass=9, nrep=10, data=data_clust, verbose=FALSE)
+
+# generate dataframe with fit-values
+  save(lc1,lc2,lc3,lc4,lc5,lc6,lc7,lc8,lc9, file = "lca3.RData")
+}
+load("lca3.RData")# Check the four selected models
+
+results <- data.frame(Modell=c("Modell 1"),
+                      log_likelihood=lc1$llik,
+                      df = lc1$resid.df,
+                      BIC=lc1$bic,
+                      ABIC=  (-2*lc1$llik) + ((log((lc1$N + 2)/24)) * lc1$npar),
+                      CAIC = (-2*lc1$llik) + lc1$npar * (1 + log(lc1$N)), 
+                      likelihood_ratio=lc1$Gsq)
+results$Modell<-as.integer(results$Modell)
+results[1,1]<-c("1 cluster")
+results[2,1]<-c("2 clusters")
+results[3,1]<-c("3 clusters")
+results[4,1]<-c("4 clusters")
+results[5,1]<-c("5 clusters")
+results[6,1]<-c("6 clusters")
+results[7,1]<-c("7 clusters")
+results[8,1]<-c("8 clusters")
+results[9,1]<-c("9 clusters")
+
+results[2,2]<-lc2$llik
+results[3,2]<-lc3$llik
+results[4,2]<-lc4$llik
+results[5,2]<-lc5$llik
+results[6,2]<-lc6$llik
+results[7,2]<-lc7$llik
+results[8,2]<-lc8$llik
+results[9,2]<-lc9$llik
+
+results[2,3]<-lc2$resid.df
+results[3,3]<-lc3$resid.df
+results[4,3]<-lc4$resid.df
+results[5,3]<-lc5$resid.df
+results[6,3]<-lc6$resid.df
+results[7,3]<-lc7$resid.df
+results[8,3]<-lc8$resid.df
+results[9,3]<-lc9$resid.df
+
+results[2,4]<-lc2$bic
+results[3,4]<-lc3$bic
+results[4,4]<-lc4$bic
+results[5,4]<-lc5$bic
+results[6,4]<-lc6$bic
+results[7,4]<-lc7$bic
+results[8,4]<-lc8$bic
+results[9,4]<-lc9$bic
+
+results[2,5]<-(-2*lc2$llik) + ((log((lc2$N + 2)/24)) * lc2$npar) #abic
+results[3,5]<-(-2*lc3$llik) + ((log((lc3$N + 2)/24)) * lc3$npar)
+results[4,5]<-(-2*lc4$llik) + ((log((lc4$N + 2)/24)) * lc4$npar)
+results[5,5]<-(-2*lc5$llik) + ((log((lc5$N + 2)/24)) * lc5$npar)
+results[6,5]<-(-2*lc6$llik) + ((log((lc6$N + 2)/24)) * lc6$npar)
+results[7,5]<-(-2*lc7$llik) + ((log((lc7$N + 2)/24)) * lc7$npar) 
+results[8,5]<-(-2*lc8$llik) + ((log((lc8$N + 2)/24)) * lc8$npar) 
+results[9,5]<-(-2*lc9$llik) + ((log((lc9$N + 2)/24)) * lc9$npar) 
+
+results[2,6]<- (-2*lc2$llik) + lc2$npar * (1 + log(lc2$N)) #caic
+results[3,6]<- (-2*lc3$llik) + lc3$npar * (1 + log(lc3$N))
+results[4,6]<- (-2*lc4$llik) + lc4$npar * (1 + log(lc4$N))
+results[5,6]<- (-2*lc5$llik) + lc5$npar * (1 + log(lc5$N))
+results[6,6]<- (-2*lc6$llik) + lc6$npar * (1 + log(lc6$N))
+results[7,6]<- (-2*lc7$llik) + lc7$npar * (1 + log(lc7$N))
+results[8,6]<- (-2*lc8$llik) + lc8$npar * (1 + log(lc8$N))
+results[9,6]<- (-2*lc9$llik) + lc9$npar * (1 + log(lc9$N))
+
+results[2,7]<-lc2$Gsq
+results[3,7]<-lc3$Gsq
+results[4,7]<-lc4$Gsq
+results[5,7]<-lc5$Gsq
+results[6,7]<-lc6$Gsq
+results[7,7]<-lc7$Gsq
+results[8,7]<-lc8$Gsq
+results[9,7]<-lc9$Gsq
+
+
+entropy<-function (p) sum(-p*log(p))
+
+results$R2_entropy
+results[1,8]<-c("-")
+
+error_prior<-entropy(lc2$P) # class proportions model 2
+error_post<-mean(apply(lc2$posterior,1, entropy),na.rm = TRUE)
+results[2,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc3$P) # class proportions model 3
+error_post<-mean(apply(lc3$posterior,1, entropy),na.rm = TRUE)
+results[3,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc4$P) # class proportions model 4
+error_post<-mean(apply(lc4$posterior,1, entropy),na.rm = TRUE)
+results[4,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc5$P) # class proportions model 5
+error_post<-mean(apply(lc5$posterior,1, entropy),na.rm = TRUE)
+results[5,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc6$P) # class proportions model 6
+error_post<-mean(apply(lc6$posterior,1, entropy),na.rm = TRUE)
+results[6,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc7$P) # class proportions model 6
+error_post<-mean(apply(lc7$posterior,1, entropy),na.rm = TRUE)
+results[7,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc8$P) # class proportions model 6
+error_post<-mean(apply(lc8$posterior,1, entropy),na.rm = TRUE)
+results[8,8]<-round(((error_prior-error_post) / error_prior),3)
+
+error_prior<-entropy(lc9$P) # class proportions model 6
+error_post<-mean(apply(lc9$posterior,1, entropy),na.rm = TRUE)
+results[9,8]<-round(((error_prior-error_post) / error_prior),3)
+
+# combining results to a dataframe
+colnames(results)<-c("Model","log-likelihood","resid. df","BIC","aBIC","cAIC","likelihood-ratio","Entropy")
+lca_results<-results
+
+#results
+
+
+# ELBOW DIAGRAM
+
+# Order categories of results$model in order of appearance
+#install.packages("forcats")
+library("forcats")
+#results$model < - as_factor(results$model) 
+
+#convert to long format
+results2<-tidyr::gather(results,Kriterium,Guete,4:6)
+#results2
+
+#plot 
+fit.plot<-ggplot(results2) + 
+  geom_point(aes(x=Model,y=Guete),size=3) +
+  geom_line(aes(Model, Guete, group = 1)) +
+  theme_bw()+
+  labs(x = "", y="", title = "") + 
+  facet_grid(Kriterium ~. ,scales = "free") +
+  theme_bw(base_size = 16, base_family = "") +   
+  theme(panel.grid.major.x = element_blank() ,
+        panel.grid.major.y = element_line(colour="grey", size=0.5),
+        legend.title = element_text(size = 16, face = 'bold'),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+        axis.title = element_text(size = 16),
+        legend.text=  element_text(size=16),
+        axis.line = element_line(colour = "black")) # Achsen etwas dicker
+
+# save 650 x 800
+
+
+fit.plot
+
+set.seed(01012)
+lc4 <- poLCA(f, maxiter=1000, nclass=4, nrep=10, data=data_clust, verbose=FALSE)
+
+round(colMeans(lc4$posterior)*100,2)
+index_i<-apply(lc4$posterior, 1, which.max)# find for each id, the  identified class
+
+#index_i[index_i==1]<-5
+#table(index_i)
+data_clust$class_LCA<-index_i
+
+data_clust$class_LCA[index_i==1]<-1
+data_clust$class_LCA[index_i==2]<-4
+data_clust$class_LCA[index_i==3]<-2
+data_clust$class_LCA[index_i==4]<-3
+table(data_clust$class_LCA)
+
+
+data_clust_long<-reshape(data_clust, direction = "long", varying = names(data_clust)[2:5], idvar = "Response.ID", sep="_",timevar="Question")
+#plotting responses with respect to resulted clustering
+p <- ggplot(data = data_clust_long, aes(x=Question, y=envgrow)) + 
+  geom_boxplot(aes(fill=as.factor(class_LCA)))  
+p + facet_wrap( ~ Question, scales="free")+  
+  scale_fill_manual(values=c("magenta","cyan","lightgreen", "darkgreen"),  
+                    name="", breaks=c("1","2","3","4")
+                    ,labels=c("Growth sceptical","Growth indifferent","Pro-growth moderate","Pro-growth strong")
+                    )+ 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        legend.position="bottom")
+
+
+
+data_clean$GEMcluster<-matrix(NA,length(data_clean$ResponseId),1)
+
+  
+  data_clean$GEMcluster[data_clean$ResponseId %in% data_clust$ID]<-data_clust$class_LCA[data_clust$ID %in% data_clean$ResponseId]
+  summary(data_clean$GEMcluster)
+table(data_clean$GEMcluster)
+
+
+table(data_clean$GEMcluster)
+
+position_weighted<-matrix(0,4,1)
+for (ig in 1:4){
+
+position_weighted[ig]<-sum(data_clean$weights[which(data_clean$GEMcluster==ig)])
+
+}
+position_weighted
+position_weighted/sum(position_weighted)
+
+
+
+
+```
+
+
+```{r, echo=FALSE}
+table(data_clean$cntry)
+
+data_clean$GEMclusterF<-matrix(NA,length(data_clean$GEMcluster),1)
+data_clean$GEMclusterF[which(data_clean$GEMcluster==1)]<-"Degrowth"
+data_clean$GEMclusterF[which(data_clean$GEMcluster==2)]<-"Agrowth"
+data_clean$GEMclusterF[which(data_clean$GEMcluster==3)]<-"Pro-growth moderate"
+data_clean$GEMclusterF[which(data_clean$GEMcluster==4)]<-"Pro-growth strong"
+
+# 1. Import the CSV
+classification_condsupporters <- read.csv("classification_condsupporters.csv")
+
+# 2. Merge on ResponseId (keep only IDs present in both)
+merged <- merge(data_clean, classification_condsupporters, by = "ResponseId")
+
+# 3. Create a crosstab / contingency table
+tab <- table(merged$GEMclusterF, merged$group)
+
+# 4. Inspect overlap
+print(tab)
+
+# Row percentages
+row_pct <- prop.table(tab, margin = 1) * 100
+
+# Column percentages
+col_pct <- prop.table(tab, margin = 2) * 100
+
+# Display
+cat("Counts:\n")
+print(tab)
+cat("\nRow percentages (%):\n")
+print(round(row_pct, 1))
+cat("\nColumn percentages (%):\n")
+print(round(col_pct, 1))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+par(mfrow = c(2,2) ,mar=c(2,2,1.5,1))
+
+hist(data_clean$clim_worry[which(data_clean$GEMclusterF=="Degrowth")], main="Degrowth")
+hist(data_clean$clim_worry[which(data_clean$GEMclusterF=="Agrowth")], main="Agrowth")
+hist(data_clean$clim_worry[which(data_clean$GEMclusterF=="Pro-growth moderate")], main="Pro-growth moderate")
+hist(data_clean$clim_worry[which(data_clean$GEMclusterF=="Pro-growth strong")], main="Pro-growth strong")
+
+
+hist(data_clean$sec_order_me [which(data_clean$GEMclusterF=="Degrowth")], main="Degrowth")
+hist(data_clean$sec_order_me [which(data_clean$GEMclusterF=="Agrowth")], main="Agrowth")
+hist(data_clean$sec_order_me [which(data_clean$GEMclusterF=="Pro-growth moderate")], main="Pro-growth moderate")
+hist(data_clean$sec_order_me [which(data_clean$GEMclusterF=="Pro-growth strong")], main="Pro-growth strong")
+
+
+residence_Austria<-data_clean$GEMclusterF[which(data_clean$cntry=="AT")]
+residence_Czechia<-data_clean$GEMclusterF[which(data_clean$cntry=="CZ")]
+residence_Germany<-data_clean$GEMclusterF[which(data_clean$cntry=="DE")]
+residence_Denmark<-data_clean$GEMclusterF[which(data_clean$cntry=="DK")]
+residence_Spain<-data_clean$GEMclusterF[which(data_clean$cntry=="ES")]
+residence_France<-data_clean$GEMclusterF[which(data_clean$cntry=="FR")]
+residence_Greece<-data_clean$GEMclusterF[which(data_clean$cntry=="GR")]
+residence_Hungary<-data_clean$GEMclusterF[which(data_clean$cntry=="HU")]
+residence_Italy<-data_clean$GEMclusterF[which(data_clean$cntry=="IT")]
+residence_Netherlands<-data_clean$GEMclusterF[which(data_clean$cntry=="NL")]
+residence_Poland<-data_clean$GEMclusterF[which(data_clean$cntry=="PL")]
+residence_Sweden<-data_clean$GEMclusterF[which(data_clean$cntry=="SE")]
+residence_Slovenia<-data_clean$GEMclusterF[which(data_clean$cntry=="SI")]
+
+ sort(table(residence_Austria),decreasing = TRUE)
+ sort(table(residence_Czechia),decreasing = TRUE)
+ sort(table(residence_Germany),decreasing = TRUE)
+ sort(table(residence_Denmark),decreasing = TRUE)
+ sort(table(residence_Spain),decreasing = TRUE)
+ sort(table(residence_France),decreasing = TRUE)
+ sort(table(residence_Greece),decreasing = TRUE)
+ sort(table(residence_Hungary),decreasing = TRUE)
+ sort(table(residence_Italy),decreasing = TRUE)
+ sort(table(residence_Netherlands),decreasing = TRUE) 
+ sort(table(residence_Poland),decreasing = TRUE)
+ sort(table(residence_Sweden),decreasing = TRUE)
+ sort(table(residence_Slovenia),decreasing = TRUE)
+
+ 
+ par(mfrow = c(5, 3) ,mar=c(1,1,1,2))
+
+ 
+pie_labels <- paste0(names(table(residence_Austria)), ", ", round(100*table(residence_Austria)/sum(table(residence_Austria)), 2), "%")
+pie(table(residence_Austria), labels = pie_labels,main="Austria")
+
+pie_labels <- paste0(names(table(residence_Czechia)), ", ", round(100*table(residence_Czechia)/sum(table(residence_Czechia)), 2), "%")
+pie(table(residence_Czechia), labels = pie_labels,main="Czechia")
+
+pie_labels <- paste0(names(table(residence_Germany)), ", ", round(100*table(residence_Germany)/sum(table(residence_Germany)), 2), "%")
+pie(table(residence_Germany), labels = pie_labels,main="Germany")
+
+pie_labels <- paste0(names(table(residence_Denmark)), ", ", round(100*table(residence_Denmark)/sum(table(residence_Denmark)), 2), "%")
+pie(table(residence_Denmark), labels = pie_labels,main="Denmark")
+
+pie_labels <- paste0(names(table(residence_Spain)), ", ", round(100*table(residence_Spain)/sum(table(residence_Spain)), 2), "%")
+pie(table(residence_Spain), labels = pie_labels,main="Spain")
+
+
+
+pie_labels <- paste0(names(table(residence_France)), ", ", round(100*table(residence_France)/sum(table(residence_France)), 2), "%")
+pie(table(residence_France), labels = pie_labels,main="France")
+
+pie_labels <- paste0(names(table(residence_Greece)), ", ", round(100*table(residence_Greece)/sum(table(residence_Greece)), 2), "%")
+pie(table(residence_Greece), labels = pie_labels,main="Greece")
+
+pie_labels <- paste0(names(table(residence_Hungary)), ", ", round(100*table(residence_Hungary)/sum(table(residence_Hungary)), 2), "%")
+pie(table(residence_Hungary), labels = pie_labels,main="Hungary")
+
+pie_labels <- paste0(names(table(residence_Italy)), ", ", round(100*table(residence_Italy)/sum(table(residence_Italy)), 2), "%")
+pie(table(residence_Italy), labels = pie_labels,main="Italy")
+
+pie_labels <- paste0(names(table(residence_Netherlands)), ", ", round(100*table(residence_Netherlands)/sum(table(residence_Netherlands)), 2), "%")
+pie(table(residence_Netherlands), labels = pie_labels,main="Netherlands")
+
+
+
+pie_labels <- paste0(names(table(residence_Poland)), ", ", round(100*table(residence_Poland)/sum(table(residence_Poland)), 2), "%")
+pie(table(residence_Poland), labels = pie_labels,main="Poland")
+
+pie_labels <- paste0(names(table(residence_Sweden)), ", ", round(100*table(residence_Sweden)/sum(table(residence_Sweden)), 2), "%")
+pie(table(residence_Sweden), labels = pie_labels,main="Sweden")
+
+pie_labels <- paste0(names(table(residence_Slovenia)), ", ", round(100*table(residence_Slovenia)/sum(table(residence_Slovenia)), 2), "%")
+pie(table(residence_Slovenia), labels = pie_labels,main="Slovenia")
+
+
+
+country<-c(rep("AT" , 4) , rep("CZ" , 4) , rep("DE" , 4) , rep("DK" , 4),rep("ES" , 4) , rep("FR" , 4) , rep("GR" , 4) , rep("HU" , 4), rep("IT" , 4) , rep("NL" , 4) , rep("PL" , 4) , rep("SE" , 4), rep("SI" , 4))
+GEMcluster<- rep(c("Agrowth" , "Degrowth","Pro-growth moderate","Pro-growth strong") , 13)
+share <- c(as.numeric(round(100*table(residence_Austria)/sum(table(residence_Austria)), 2)),
+           as.numeric(round(100*table(residence_Czechia)/sum(table(residence_Czechia)), 2)),
+           as.numeric(round(100*table(residence_Germany)/sum(table(residence_Germany)), 2)),
+           as.numeric(round(100*table(residence_Denmark)/sum(table(residence_Denmark)), 2)),
+           as.numeric(round(100*table(residence_Spain)/sum(table(residence_Spain)), 2)),
+           as.numeric(round(100*table(residence_France)/sum(table(residence_France)), 2)),
+           as.numeric(round(100*table(residence_Greece)/sum(table(residence_Greece)), 2)),
+           as.numeric(round(100*table(residence_Hungary)/sum(table(residence_Hungary)), 2)),
+           as.numeric(round(100*table(residence_Italy)/sum(table(residence_Italy)), 2)),
+           as.numeric(round(100*table(residence_Netherlands)/sum(table(residence_Netherlands)), 2)),
+           as.numeric(round(100*table(residence_Poland)/sum(table(residence_Poland)), 2)),
+           as.numeric(round(100*table(residence_Sweden)/sum(table(residence_Sweden)), 2)),
+           as.numeric(round(100*table(residence_Slovenia)/sum(table(residence_Slovenia)), 2)))
+
+data2 <- data.frame(country,GEMcluster,share)
+
+data2$GEMcluster <- factor(data2$GEMcluster, levels=c("Pro-growth strong","Pro-growth moderate","Agrowth" , "Degrowth"))
+
+data2$share<-data2$share/100
+
+ggplot(data2, aes(fill=GEMcluster, y=share, x=country)) + 
+    geom_bar(position="fill", stat="identity")+
+  scale_fill_manual(values = c("darkgreen","green","blue", "red"))+
+  scale_y_continuous(labels = scales::percent) +
+  geom_text(aes(label = paste0(share*100,"%")), 
+            position = position_stack(vjust = 0.5), size = 2) #+
+  #scale_fill_discrete(labels = c("Green growth", "Agrowth", "Degrowth")) 
+
+
+
+```
+
+
+
+
+
+```{r, echo=FALSE}
+#following http://uc-r.github.io/gbm_regression
+library(rsample)      # data splitting 
+library(gbm)          # basic implementation
+library(xgboost)      # a faster implementation of gbm
+library(caret)        # an aggregator package for performing many machine learning models
+library(h2o)          # a java-based platform
+library(pdp)          # model visualization
+library(ggplot2)      # model visualization
+library(lime)         # model visualization
+
+# set.seed(123)
+# ames_split <- initial_split(AmesHousing::make_ames(), prop = .7)
+# ames_train <- training(ames_split)
+# ames_test  <- testing(ames_split)
+
+data_gbm<-data_clean[,-c(1,5,29,30,31,32,70,66,65,63,56,57,52:55)]
+
+data_gbm <- na.omit(data_gbm)
+
+data_gbm$cntry<-as.factor(data_gbm$cntry)
+
+
+#data_clust_gbm$class_LCA<-as.numeric(data_clust_gbm$class_LCA)
+
+data_gbm_split <- initial_split(data_gbm, prop = .9)
+data_gbm_train <- training(data_gbm_split)
+data_gbm_test  <- testing(data_gbm_split)
+# for reproducibility
+set.seed(123)
+
+justloaddata<-1
+
+if(justloaddata==0){
+  
+# train GBM model
+gbm.fit <- gbm(
+  formula = GEMcluster ~ .,
+  distribution = "poisson",
+  data = data_gbm_train,
+  n.trees = 1000,
+  interaction.depth = 3,
+  shrinkage = 0.001,
+  cv.folds = 5,
+  n.cores = NULL, # will use all cores by default
+  verbose = FALSE
+)  
+
+# print results
+print(gbm.fit)
+sqrt(min(gbm.fit$cv.error))
+gbm.perf(gbm.fit, method = "cv")
+
+
+
+
+
+# create hyperparameter grid
+hyper_grid <- expand.grid(
+  shrinkage = c(.01, .1, .3),
+  interaction.depth = c(1, 3, 5),
+  n.minobsinnode = c(5, 10, 15),
+  bag.fraction = c(.65, .8, 1), 
+  optimal_trees = 0,               # a place to dump results
+  min_RMSE = 0                     # a place to dump results
+)
+
+# total number of combinations
+nrow(hyper_grid)
+## [1] 81
+
+random_index <- sample(1:nrow(data_gbm_train), nrow(data_gbm_train))
+random_data_gbm_train <- data_gbm_train[random_index, ]
+
+# grid search 
+for(i in 1:nrow(hyper_grid)) {
+  
+  # reproducibility
+  set.seed(123)
+  
+  # train model
+  gbm.tune <- gbm(
+    formula = GEMcluster ~ .,
+    distribution = "poisson",
+    data = random_data_gbm_train,
+    n.trees = 1000,
+    interaction.depth = hyper_grid$interaction.depth[i],
+    shrinkage = hyper_grid$shrinkage[i],
+    n.minobsinnode = hyper_grid$n.minobsinnode[i],
+    bag.fraction = hyper_grid$bag.fraction[i],
+    train.fraction = .75,
+    n.cores = NULL, # will use all cores by default
+    verbose = FALSE
+  )
+  
+  # add min training error and trees to grid
+  hyper_grid$optimal_trees[i] <- which.min(gbm.tune$valid.error)
+  hyper_grid$min_RMSE[i] <- sqrt(min(gbm.tune$valid.error))
+}
+
+hyper_grid %>% 
+  dplyr::arrange(min_RMSE) %>%
+  head(10)
+
+
+
+
+# modify hyperparameter grid
+hyper_grid <- expand.grid(
+  shrinkage = c(.01, .05, .01),
+  interaction.depth = c(5, 10, 15),
+  n.minobsinnode = c(10, 15, 25),
+  bag.fraction = c(.6, .7, .8), 
+  optimal_trees = 0,               # a place to dump results
+  min_RMSE = 0                     # a place to dump results
+)
+
+# total number of combinations
+nrow(hyper_grid)
+## [1] 81
+
+# grid search 
+for(i in 1:nrow(hyper_grid)) {
+  
+  # reproducibility
+  set.seed(123)
+  
+  # train model
+  gbm.tune <- gbm(
+    formula = GEMcluster ~ .,
+    distribution = "poisson",
+    data = random_data_gbm_train,
+    n.trees = 1000,
+    interaction.depth = hyper_grid$interaction.depth[i],
+    shrinkage = hyper_grid$shrinkage[i],
+    n.minobsinnode = hyper_grid$n.minobsinnode[i],
+    bag.fraction = hyper_grid$bag.fraction[i],
+    train.fraction = .75,
+    n.cores = NULL, # will use all cores by default
+    verbose = FALSE
+  )
+  
+  # add min training error and trees to grid
+  hyper_grid$optimal_trees[i] <- which.min(gbm.tune$valid.error)
+  hyper_grid$min_RMSE[i] <- sqrt(min(gbm.tune$valid.error))
+}
+
+hyper_grid %>% 
+  dplyr::arrange(min_RMSE) %>%
+  head(10)
+
+
+} ### finish training GBM
+
+
+# for reproducibility
+set.seed(123)
+
+# train GBM model
+gbm.fit.final <- gbm(
+  formula = GEMcluster ~ .,
+  distribution = "poisson",
+  data = data_gbm_train,
+  n.trees = 1000,
+  interaction.depth = 15,
+  shrinkage = 0.01,
+  n.minobsinnode = 15,
+  bag.fraction = .7, 
+  train.fraction = 1,
+  n.cores = NULL, # will use all cores by default
+  verbose = FALSE
+)  
+
+#png('gbm_rank_pub.png',width = 4, height = 6, units = 'in', res = 1000)
+
+par(mar = c(5, 12, 1, 1))
+summary(
+  gbm.fit.final, 
+  cBars = 40,
+  method = relative.influence, # also can use permutation.test.gbm
+  las = 2, 
+  cex.lab=.75, cex.axis=.75, cex.main=.75, cex.sub=.75,cex.names=.5
+)
+#dev.off()
+set.seed(123)
+# predict values for test data
+pred <- predict(gbm.fit.final, n.trees = gbm.fit.final$n.trees, data_gbm_test,type='response')
+# results
+#pred_bi<-apply(pred, 1, which.max)
+caret::RMSE(pred, data_gbm_test$GEMcluster)
+
+caret::RMSE(rep(mean(data_gbm_test$GEMcluster),length(data_gbm_test$GEMcluster)), data_gbm_test$GEMcluster)
+
+
+```
+
+
+```{r, echo=FALSE}
+
+listcountries<-read.csv('Weighted growth strength data updated2.csv', header=T, sep=',')
+listcountries<-listcountries[,-c(9,10,11,12,13)]
+
+data_cleaned<-data_clean[-which(is.na(data$env_grow_pos1) | is.na(data$env_grow_pos2) | is.na(data$env_grow_pos3)  | is.na(data$env_grow_pos4)),]
+
+table(data_cleaned$cntry)
+table(data_cleaned$GEMcluster)
+
+listcountries$GGstrong<-matrix(0,length(listcountries$Citizens),1)
+listcountries$GGmoderate<-matrix(0,length(listcountries$Citizens),1)
+listcountries$Agrowth<-matrix(0,length(listcountries$Citizens),1)
+listcountries$Degrowth<-matrix(0,length(listcountries$Citizens),1)
+
+listcountries$WeightedGrowthSupport<-matrix(0,length(listcountries$Citizens),1)
+data_cleaned$WeightedGrowthSupport<-matrix(0,length(data_cleaned$cntry),1)
+
+data_cleaned$envgrow_pos1n<-matrix(0,length(data_cleaned$envgrow_pos1),1)
+data_cleaned$envgrow_pos2n<-matrix(0,length(data_cleaned$envgrow_pos2),1)
+data_cleaned$envgrow_pos3n<-matrix(0,length(data_cleaned$envgrow_pos3),1)
+data_cleaned$envgrow_pos4n<-matrix(0,length(data_cleaned$envgrow_pos4),1)
+
+scale<-c(-1,-2/3,-1/3,0,1/3,2/3,1)
+
+data_cleaned$envgrow_pos1n<-sapply(length(data_cleaned$envgrow_pos1), function(x) scale[data_cleaned$envgrow_pos1])
+data_cleaned$envgrow_pos2n<-sapply(length(data_cleaned$envgrow_pos1), function(x) scale[data_cleaned$envgrow_pos2])
+data_cleaned$envgrow_pos3n<-sapply(length(data_cleaned$envgrow_pos1), function(x) scale[data_cleaned$envgrow_pos3])
+data_cleaned$envgrow_pos4n<-sapply(length(data_cleaned$envgrow_pos1), function(x) scale[data_cleaned$envgrow_pos4])
+
+
+countries<-unique(data_cleaned$cntry)
+for (ic in countries){
+listcountries$GGstrong[which(listcountries$Country==ic)]<-length(which(data_cleaned$GEMcluster==4 & data_cleaned$cntry==ic))/length(which(data_cleaned$cntry==ic))*100
+listcountries$GGmoderate[which(listcountries$Country==ic)]<-length(which(data_cleaned$GEMcluster==3 & data_cleaned$cntry==ic))/length(which(data_cleaned$cntry==ic))*100
+listcountries$Agrowth[which(listcountries$Country==ic)]<-length(which(data_cleaned$GEMcluster==2 & data_cleaned$cntry==ic))/length(which(data_cleaned$cntry==ic))*100
+listcountries$Degrowth[which(listcountries$Country==ic)]<-length(which(data_cleaned$GEMcluster==1 & data_cleaned$cntry==ic))/length(which(data_cleaned$cntry==ic))*100
+listcountries$WeightedGrowthSupport[which(listcountries$Country==ic)]<-(sum(data_cleaned$envgrow_pos1n[which(data_cleaned$cntry==ic)]) + sum(data_cleaned$envgrow_pos2n[which(data_cleaned$cntry==ic)]) +sum(data_cleaned$envgrow_pos3n[which(data_cleaned$cntry==ic)]) +sum(data_cleaned$envgrow_pos4n[which(data_cleaned$cntry==ic)]) )/(length(which(data_cleaned$cntry==ic))*4)
+}
+
+
+DataCorrplot<-listcountries[,-c(1,2,3,4)]
+
+colnames(DataCorrplot)[c(1,2,3,4,5,6,7,8,9,10)]<-c("IHDI","GDP per capita","Gini","Life satisfaction","Growth support","Policy stringency", "Pro-growth strong", "Pro-growth moderate","Agrowth","Degrowth")
+library(tidyverse)
+
+M <-drop_na(DataCorrplot)
+
+par(mfrow = c(1, 1) ,mar=c(1,1,1,2))
+Mc <- cor(M)
+
+
+testRes = cor.mtest(Mc, conf.level = 0.95)
+corrplot(Mc, p.mat = testRes$p, method = 'circle', insig='blank',col.lim = c(-1, 1),tl.cex=.9,tl.col="black",
+          diag = FALSE,col=colorRampPalette(c("blue","white","red"))(200))$corrPos -> p1
+p1<-p1[which(p1$p.value<0.05),]
+text(p1$x, p1$y, round(p1$corr, 2),cex=.5)
+
+
+
+testRes$p = testRes$p[1:6,1:6]
+corrplot(Mc[1:6,1:6], p.mat = testRes$p[1:6,1:6], method = 'circle', insig='blank',col.lim = c(-1, 1),tl.cex=.9,tl.col="black",
+          diag = FALSE,col=colorRampPalette(c("blue","white","red"))(200))$corrPos -> p1
+p1<-p1[which(p1$p.value<0.05),]
+text(p1$x, p1$y, round(p1$corr, 2),cex=.5)
+
+
+
+
+
+print(listcountries)
+write.csv(listcountries, "Weighted growth strength.csv")
+
+
+#table(data$countryname)
+library(rworldmap)
+library(RColorBrewer)
+dF<-matrix(0,13,2)
+dF<-as.data.frame(dF)
+names(dF)<-c("country", "value")
+dF$country<-listcountries$Country
+dF$value<-as.numeric(listcountries$WeightedGrowthSupport)
+# 
+# sPDF <- joinCountryData2Map(dF,joinCode = "NAME",nameJoinColumn = "country",verbose = TRUE)
+# mapCountryData(sPDF,nameColumnToPlot="value",colourPalette="heat",catMethod=c(0,1,3,5,10,20,25,30,40,50,60,95,145), mapTitle="EIST geographical coverage")
+# mapParams <- mapCountryData(sPDF, nameColumnToPlot="value", colourPalette="heat", catMethod=c(0,1,3,5,10,20,25,30,40,50,60,95,145), addLegend=FALSE, mapTitle="EIST geographical coverage")
+# do.call( addMapLegend, c( mapParams, legendLabels="all", legendWidth=0.5 ))
+
+
+
+#following https://bhaskarvk.github.io/user2017.geodataviz/notebooks/02-Static-Maps.nb.html
+
+suppressPackageStartupMessages(library(sf))
+
+#install.packages("extrafont")
+library(extrafont)
+loadfonts(device = "win")
+
+world <- st_as_sf(rnaturalearth::countries110)
+europe <- dplyr::filter(world, REGION_UN=="Europe" & NAME!='Russia' & NAME!='Ukraine' & NAME!='Belarus')
+
+# A bounding box for continental Europe.
+europe.bbox <- st_polygon(list(
+  matrix(c(-25,29,45,29,45,75,-25,75,-25,29),byrow = T,ncol = 2)))
+
+dF[which(dF$country=="Czech Republic"),1]<-"Czechia"
+europe.clipped <- suppressWarnings(st_intersection(europe, st_sfc(europe.bbox, crs=st_crs(europe))))
+europe_merged<-left_join(europe.clipped,dF,by = c("ISO_A2_EH" = "country"))
+
+ggplot(europe_merged, aes(fill=value)) +
+  geom_sf(alpha=0.8,col='white') +
+  coord_sf(crs="+proj=aea +lat_1=36.333333333333336 +lat_2=65.66666666666667 +lon_0=14") +
+  hrbrthemes::theme_ipsum_rc() +
+  viridis::scale_fill_viridis(
+    name='', direction = -1, labels=scales::number) +
+  labs(x=NULL, y=NULL, title=NULL,
+       caption='')
+
+
+ggplot(europe_merged, aes(fill=value)) +
+     geom_sf(alpha=0.8,col='white') +
+     coord_sf(crs="+proj=aea +lat_1=36.333333333333336 +lat_2=65.66666666666667 +lon_0=14") +
+     hrbrthemes::theme_ipsum_rc() +
+     viridis::scale_fill_viridis(
+         name='', labels=scales::number, option = "D",begin=1, end=.5) +
+     labs(x=NULL, y=NULL, title=NULL,
+          caption='')
+
+```
+
+
+
+```{r, echo=FALSE}
+
+data_cleaned$WeightedGrowthSupport<-(data_cleaned$envgrow_pos1n + data_cleaned$envgrow_pos2n +data_cleaned$envgrow_pos3n+data_cleaned$envgrow_pos4n)/4
+summary(data_cleaned$WeightedGrowthSupport)
+
+hist(data_cleaned$WeightedGrowthSupport)
+hist(data_cleaned$WeightedGrowthSupport,breaks=100)
+
+summary(data_cleaned$WeightedGrowthSupport)
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$GEMclusterF=="Degrowth")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$GEMclusterF=="Agrowth")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$GEMclusterF=="Pro-growth moderate")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$GEMclusterF=="Pro-growth strong")])
+
+table(data_cleaned$cntry)
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="AT")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="CZ")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="DE")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="DK")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="ES")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="FR")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="GR")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="HU")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="IT")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="NL")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="PL")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="SE")])
+summary(data_cleaned$WeightedGrowthSupport[which(data_cleaned$cntry=="SI")])
+
+
+
+DataCorrplot<-data_cleaned[,-c(1,2,63,65,66,68,70:73)]
+
+library(tidyverse)
+
+M <-drop_na(DataCorrplot)
+
+par(mfrow = c(1, 1) ,mar=c(1,1,1,2))
+Mc <- cor(M)
+
+
+testRes = cor.mtest(Mc, conf.level = 0.95)
+corrplot(Mc, p.mat = testRes$p, method = 'circle', insig='blank',col.lim = c(-1, 1),tl.cex=.9,tl.col="black",
+          diag = FALSE,col=colorRampPalette(c("blue","white","red"))(200))$corrPos -> p1
+p1<-p1[which(p1$p.value<0.05),]
+text(p1$x, p1$y, round(p1$corr, 2),cex=.5)
+# 
+# #Mc<-as.matrix(Mc)
+# corrplot(Mc[c(50:52,62),c(1:61)], p.mat = testRes$p[c(50:52,62),c(1:61)],  method = "circle", insig='blank',
+#          #order = "hclust",
+#          #diag = FALSE,
+#          is.corr=FALSE,
+#          number.cex = 0.5,
+#          cl.lim=c(-1,1),
+#          addCoef.col = "black", # Add coefficient of correlation
+#          tl.col = "black", tl.srt = 90,col=colorRampPalette(c("blue","white","red"))(200))$corrPos -> p1
+# p1<-p1[which(p1$p.value<0.05),]
+# text(p1$x, p1$y, round(p1$corr, 2),cex=.5)
+
+
+corrplot(Mc[c(50:53,62:63),c(1:19,23:26,54:61)], p.mat = testRes$p[c(50:53,62:63),c(1:19,23:26,54:61)],  method = "circle", insig='blank',
+         #order = "hclust",
+         #diag = FALSE,
+         is.corr=FALSE,
+         number.cex = 0.5,
+         cl.lim=c(-1,1),
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col = "black", tl.srt = 90,col=colorRampPalette(c("blue","white","red"))(200))$corrPos -> p1
+p1<-p1[which(p1$p.value<0.05),]
+text(p1$x, p1$y, round(p1$corr, 2),cex=.5)
+
+
+
+corrplot(Mc[c(50:53,62:63),c(20:22,31:49)], p.mat = testRes$p[c(50:53,62:63),c(20:22,31:49)],  method = "circle", insig='blank',
+         #order = "hclust",
+         #diag = FALSE,
+         is.corr=FALSE,
+         number.cex = 0.5,
+         cl.lim=c(-1,1),
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col = "black", tl.srt = 90,col=colorRampPalette(c("blue","white","red"))(200))$corrPos -> p1
+p1<-p1[which(p1$p.value<0.05),]
+text(p1$x, p1$y, round(p1$corr, 2),cex=.5)
+
+
+data_cleaned_copy<-data_cleaned
+data_cleaned_copy$WeightedGrowthSupport<-(data_cleaned$envgrow_pos1n +data_cleaned$envgrow_pos4n)/2
+summary(data_cleaned_copy$WeightedGrowthSupport)
+
+par(mfrow = c(1, 1) ,mar=c(4,4,1,2))
+
+hist(data_cleaned_copy$WeightedGrowthSupport)
+hist(data_cleaned_copy$WeightedGrowthSupport,breaks=30)
+
+data_Lewis<-cbind(data_cleaned$ResponseId,data_cleaned$cntry,data_cleaned$envgrow_pos1,data_cleaned$envgrow_pos4,data_cleaned$envgrow_pos1n,data_cleaned$envgrow_pos4n)
+data_Lewis<-as.data.frame(data_Lewis)
+colnames(data_Lewis)<-c("id","country","envprotection","lifesatisfaction","envprotection_rescaled","lifesatisfaction_rescaled")
+write.csv(data_Lewis,"data_Lewis_plot.csv", col.names = TRUE)
+
+
+
+```
+
+
+
+
+```{r OLS, echo=FALSE}
+
+library(stargazer)
+library(foreign)
+library(nnet)
+
+
+
+data_cleaned$cntry<-as.factor(data_cleaned$cntry)
+
+OLS = lm(WeightedGrowthSupport ~ quota_gndr + quota_age + quota_group_educ + hh_inc_wth + rural_urban + hh_size + car_use + flight_freq + clim_worry + poli_ori + gen_trust_cnty + gen_trust_EU + fit_55_knowl + sec_order_me + sec_order_polit + 
+                        
+                        ETS_gen_support +  ETS_II_transp + ETS_II_heat + ETS_II_ag +
+                        CBAM + CNTY_pol_beef + CNTY_pol_taxff + CNTY_pol_taxfly + EU_pol_rail + CNTY_pol_insu  +
+                        car_phase_all + EU_pol_beef  + EU_pol_pfli  + EU_pol_adban  +
+                        
+                        val_conf2 +  val_sec2 +  val_sec1 +  val_trad1 +  val_selfd1 +  val_stim1 +  val_ach1 +  val_hed1 +  val_pow1 +  val_bene1 +  val_uni1 +  val_bio2
+                       + cntry
+
+                        , data=data_cleaned)
+
+
+#summary(MultiLogit)
+stargazer(OLS, type="text")
+stargazer(OLS, title = "OLS", style = "default", out = "OLS.txt", type="text")
+
+library(car)
+# Calculating VIF
+vif_values <- vif(OLS)
+vif_values
+
+
+
+
+library(dotwhisker)
+library(dplyr)
+dwplot(OLS,vars_order=c("quota_gndr","quota_age","quota_group_educ","hh_inc_wth","rural_urban","hh_size","car_use","flight_freq","clim_worry","poli_ori","gen_trust_cnty","gen_trust_EU","fit_55_knowl","sec_order_me","sec_order_polit",
+                        
+                         "ETS_gen_support","ETS_II_transp","ETS_II_heat","ETS_II_ag","CBAM","CNTY_pol_beef","CNTY_pol_taxff","CNTY_pol_taxfly","EU_pol_rail","CNTY_pol_insu","car_phase_all","EU_pol_beef","EU_pol_pfli","EU_pol_adban",
+                        
+                        "val_conf2","val_sec2","val_sec1","val_trad1","val_selfd1","val_stim1","val_ach1","val_hed1","val_pow1","val_bene1","val_uni1","val_bio2"),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+            quota_gndr = "Female",
+            quota_age = "Age",
+            quota_group_educ = "Education",
+            fit_55_knowl = "Perceived climate \n policy knowledge",
+            clim_worry = "Climate concern",
+            poli_ori = "Right-wing political orientation",
+            gen_trust_cnty = "Trust in national government",
+            gen_trust_EU = "Trust in EU government",
+            hh_inc_wth= "Household income",
+            rural_urban = "Urban",
+            hh_size = "Household size",
+            car_use= "Car use",
+            flight_freq="Flight frequency",
+            sec_order_me = "Personal support climate policies",
+            sec_order_polit = "Perceived climate action",
+            
+            ETS_gen_support = "ETS support",
+            ETS_II_transp = "ETS II for transport",
+            ETS_II_heat = "ETS II for heating",
+            ETS_II_ag = "ETS II for agriculture",
+            CBAM = "CBAM support",
+            CNTY_pol_beef = "Beef Tax",
+            CNTY_pol_taxff = "Fossil Fuel Profits Tax",
+            CNTY_pol_taxfly = "Flight Tickets Tax",
+            EU_pol_rail = "EU rail fund",
+            CNTY_pol_insu = "Mandatory Insulation",
+            car_phase_all = "ICE car ban",
+            EU_pol_beef = "Intensive cattle farming ban",
+            EU_pol_pfli = "Private jet ban",
+            EU_pol_adban = "Advertising ban",
+            
+            val_pow1 = "Power (wealth)",
+            val_uni1 = "Universalism (equality)",
+            val_sec1 = "Security (personal)",
+            val_hed1 = "Hedonism",
+            val_selfd1 = "Self-direction",
+            val_bene1 = "Benevolence",
+            val_ach1 = "Achievement",
+            val_sec2 = "Security (national)",
+            val_stim1 = "Stimulation",
+            val_conf2 = "Conformity",
+            val_trad1 = "Tradition",
+            val_bio2 = "Universalism (nature)"
+        )
+    ) +
+   xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    ) +
+  xlim(-0.025, .06)
+
+
+
+
+
+dwplot(OLS,vars_order=c(                        "val_conf2","val_sec2","val_sec1","val_trad1","val_selfd1","val_stim1","val_ach1","val_hed1","val_pow1","val_bene1","val_uni1","val_bio2"
+                        ),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+            
+            val_conf2 = "Conformity",
+            val_sec2 = "Security (national)",
+            val_sec1 = "Security (personal)",
+            val_trad1 = "Tradition",
+            val_selfd1 = "Self-direction",
+            val_stim1 = "Stimulation",
+            val_ach1 = "Achievement",
+            val_hed1 = "Hedonism",
+            val_pow1 = "Power (wealth)",
+            val_bene1 = "Benevolence",
+            val_uni1 = "Universalism (equality)",
+            val_bio2 = "Universalism (nature)"
+        )
+    ) +
+   ggtitle("(a) Growth Support Index") +
+   xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    ) +
+  xlim(-0.025, .06)
+
+
+
+dwplot(OLS,vars_order=c("ETS_gen_support","ETS_II_transp","ETS_II_heat","ETS_II_ag","CBAM","EU_pol_rail","CNTY_pol_insu","CNTY_pol_beef","CNTY_pol_taxff","CNTY_pol_taxfly","car_phase_all","EU_pol_beef","EU_pol_pfli","EU_pol_adban"),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+            
+            ETS_gen_support = "ETS support",
+            ETS_II_transp = "ETS II for transport",
+            ETS_II_heat = "ETS II for heating",
+            ETS_II_ag = "ETS II for agriculture",
+            CBAM = "CBAM support",
+            CNTY_pol_beef = "Beef Tax",
+            CNTY_pol_taxff = "Fossil Fuel Profits Tax",
+            CNTY_pol_taxfly = "Flight Tickets Tax",
+            EU_pol_rail = "EU rail fund",
+            CNTY_pol_insu = "Mandatory Insulation",
+            car_phase_all = "ICE car ban",
+            EU_pol_beef = "Intensive cattle farming ban",
+            EU_pol_pfli = "Private jet ban",
+            EU_pol_adban = "Advertising ban"
+
+        )
+    ) +
+   ggtitle("(a) Growth Support Index") +
+   xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    ) +
+  xlim(-0.025, .06)
+
+
+
+
+dwplot(OLS,vars_order=c("quota_gndr","quota_age","quota_group_educ","hh_inc_wth","rural_urban","hh_size","car_use","flight_freq","clim_worry","poli_ori","gen_trust_cnty","gen_trust_EU","fit_55_knowl","sec_order_me","sec_order_polit"),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+            quota_gndr = "Female",
+            quota_age = "Age",
+            quota_group_educ = "Education",
+            hh_inc_wth= "Household income",
+            rural_urban = "Urban",
+            hh_size = "Household size",
+            car_use= "Car use",
+            flight_freq="Flight frequency",
+            clim_worry = "Climate concern",
+            poli_ori = "Right-wing political orientation",
+            gen_trust_cnty = "Trust in national government",
+            gen_trust_EU = "Trust in EU government",
+            fit_55_knowl = "Perceived climate \n policy knowledge",
+            sec_order_me = "Personal support climate policies",
+            sec_order_polit = "Perceived climate action"
+                )
+    ) +
+   ggtitle("(a) Growth Support Index") +
+xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    ) +
+  xlim(-0.025, .06)
+```
+
+
+
+
+```{r LASSO, echo=FALSE}
+# Manual LASSO with adjustable lambda multiplier
+library(glmnet)
+library(stargazer)
+
+set.seed(123)
+
+data_cleaned$cntry <- factor(data_cleaned$cntry)
+
+fml <- WeightedGrowthSupport ~ quota_gndr + quota_age + quota_group_educ + hh_inc_wth + rural_urban + hh_size +
+  car_use + flight_freq + clim_worry + poli_ori + gen_trust_cnty + gen_trust_EU + fit_55_knowl +
+  sec_order_me + sec_order_polit +
+  ETS_gen_support + ETS_II_transp + ETS_II_heat + ETS_II_ag +
+  CBAM + CNTY_pol_beef + CNTY_pol_taxff + CNTY_pol_taxfly + EU_pol_rail + CNTY_pol_insu +
+  car_phase_all + EU_pol_beef + EU_pol_pfli + EU_pol_adban +
+  val_conf2 + val_sec2 + val_sec1 + val_trad1 + val_selfd1 + val_stim1 +
+  val_ach1 + val_hed1 + val_pow1 + val_bene1 + val_uni1 + val_bio2 + cntry
+
+# Build design matrix
+mf <- model.frame(fml, data_cleaned, na.action = na.omit)
+X  <- model.matrix(fml, mf)[, -1, drop = FALSE]
+y  <- model.response(mf)
+
+# CV LASSO
+cvfit <- cv.glmnet(X, y, alpha = 1, family = "gaussian", standardize = TRUE, nfolds = 10)
+
+# --- MANUAL LAMBDA MULTIPLIER ---
+lambda_mult <- 1.2          # <--- change manually (1 = lambda.1se, 2 = double shrinkage, etc.)
+s_use <- cvfit$lambda.1se * lambda_mult
+# --------------------------------
+
+# Selected predictors
+b   <- coef(cvfit, s = s_use)
+sel <- rownames(b)[as.numeric(b) != 0]
+sel <- sel[sel != "(Intercept)"]
+
+cat("Lambda used:", s_use, "\nPredictors kept:", length(sel), "\n")
+print(sel)
+
+# Post-LASSO OLS for readable coefficients
+Xsel <- if (length(sel)) X[, sel, drop = FALSE] else X[, 0, drop = FALSE]
+post_ols <- if (ncol(Xsel) > 0) lm(y ~ Xsel) else lm(y ~ 1)
+
+stargazer(post_ols, type = "text",
+          title = paste0("LASSO OLS", lambda_mult, ")"),
+          dep.var.labels = "WeightedGrowthSupport")
+
+
+```
+
+
+
+
+```{r MLOGIT, echo=FALSE}
+data_cleaned$GEMclusterF[which(data_cleaned$GEMclusterF=="Degrowth")]<-"(b) Growth-sceptical"
+data_cleaned$GEMclusterF[which(data_cleaned$GEMclusterF=="Agrowth")]<-"Growth-indifferent"
+
+
+data_cleaned$GEMclusterF <- as.factor(data_cleaned$GEMclusterF)
+data_cleaned$GEMclusterF <- factor(data_cleaned$GEMclusterF, 
+                                    levels = c("(b) Growth-sceptical", "Growth-indifferent", "Pro-growth moderate", "Pro-growth strong"))
+data_cleaned$GEMclusterF <- relevel(data_cleaned$GEMclusterF, ref = "Pro-growth moderate")
+
+# Check the levels to confirm the order
+levels(data_cleaned$GEMclusterF)
+
+MultiLogit = multinom(GEMclusterF ~ quota_gndr + quota_age + quota_group_educ + hh_inc_wth + rural_urban + hh_size + car_use + flight_freq + clim_worry + poli_ori + gen_trust_cnty + gen_trust_EU + fit_55_knowl + sec_order_me + sec_order_polit + 
+                        
+                        ETS_gen_support +  ETS_II_transp + ETS_II_heat + ETS_II_ag +
+                        CBAM  + CNTY_pol_beef + CNTY_pol_taxff + CNTY_pol_taxfly + EU_pol_rail + CNTY_pol_insu +
+                        car_phase_all + EU_pol_beef  + EU_pol_pfli  + EU_pol_adban  +
+                        
+                        val_conf2 +  val_sec2 +  val_sec1 +  val_trad1 +  val_selfd1 +  val_stim1 +  val_ach1 +  val_hed1 +  val_pow1 +  val_bene1 +  val_uni1 +  val_bio2
+                       + cntry
+                      , data=data_cleaned)
+# #summary(MultiLogit)
+stargazer(MultiLogit, type="text")
+stargazer(MultiLogit, title = "Multinomial logit", style = "default", out = "Multinomial logit.txt", type="text")
+
+
+na_counts_base <- colSums(is.na(data_cleaned))
+print(na_counts_base)
+
+library(dotwhisker)
+library(dplyr)
+library(broom)
+library(tidyr)
+library(ggplot2)
+library(patchwork) # For combining separate plots
+
+# Extract tidy coefficients and confidence intervals
+tidy_results <- tidy(MultiLogit, conf.int = TRUE, exponentiate = FALSE)
+
+# Filter for specific variables of interest
+selected_vars <- c("quota_gndr","quota_age","quota_group_educ","fit_55_knowl","sec_order_me",
+                        "sec_order_polit",
+                        "clim_worry","poli_ori","gen_trust_cnty","gen_trust_EU","hh_inc_wth","rural_urban","hh_size","car_use","flight_freq",
+                         "ETS_gen_support","ETS_II_transp","ETS_II_heat","ETS_II_ag","CBAM","CNTY_pol_beef","CNTY_pol_taxff","CNTY_pol_taxfly","EU_pol_rail","CNTY_pol_insu","car_phase_all","EU_pol_beef","EU_pol_pfli","EU_pol_adban",
+                        "val_pow1","val_uni1"," val_sec1","val_hed1","val_selfd1","val_bene1","val_ach1","val_sec2","val_stim1","val_conf2","val_trad1","val_bio2")
+
+tidy_results <- tidy_results %>%
+  filter(term %in% selected_vars)  # Keep only the specified variables
+
+# Manually define labels from the Stargazer output for MultiLogit
+model_levels <- c("(b) Growth-sceptical", "Growth-indifferent", "Pro-growth strong")
+
+# Add 'model' column by using the 'y.level' in tidy output
+tidy_results <- tidy_results %>%
+  mutate(model = factor(y.level, levels = model_levels))
+
+# Relabel predictors for better readability
+tidy_results <- tidy_results %>%
+  mutate(term = case_when(
+    term == "quota_gndr" ~ "Female",
+term == "quota_age" ~ "Age",
+term == "quota_group_educ" ~ "Education",
+term == "fit_55_knowl" ~ "Perceived climate \n policy knowledge",
+term == "clim_worry" ~ "Climate concern",
+term == "poli_ori" ~ "Right-wing political orientation",
+term == "gen_trust_cnty" ~ "Trust in national government",
+term == "gen_trust_EU" ~ "Trust in EU government",
+term == "hh_inc_wth" ~ "Household income",
+term == "rural_urban" ~ "Urban",
+term == "hh_size" ~ "Household size",
+term == "car_use" ~ "Car use",
+term == "flight_freq" ~ "Flight frequency",
+term == "sec_order_me" ~ "Personal support climate policies",
+term == "sec_order_polit" ~ "Perceived climate action",
+term == "ETS_gen_support" ~ "ETS support",
+term == "ETS_II_transp" ~ "ETS II for transport",
+term == "ETS_II_heat" ~ "ETS II for heating",
+term == "ETS_II_ag" ~ "ETS II for agriculture",
+term == "CBAM" ~ "CBAM support",
+term == "CNTY_pol_beef" ~ "Beef Tax",
+term == "CNTY_pol_taxff" ~ "Fossil Fuel Profits Tax",
+term == "CNTY_pol_taxfly" ~ "Flight Tickets Tax",
+term == "EU_pol_rail" ~ "EU rail fund",
+term == "CNTY_pol_insu" ~ "Mandatory Insulation",
+term == "car_phase_all" ~ "ICE car ban",
+term == "EU_pol_beef" ~ "Intensive cattle farming ban",
+term == "EU_pol_pfli" ~ "Private jet ban",
+term == "EU_pol_adban" ~ "Advertising ban",
+term == "val_pow1" ~ "Power (wealth)",
+term == "val_uni1" ~ "Universalism (equality)",
+term == "val_sec1" ~ "Security (personal)",
+term == "val_hed1" ~ "Hedonism",
+term == "val_selfd1" ~ "Self-direction",
+term == "val_bene1" ~ "Benevolence",
+term == "val_ach1" ~ "Achievement",
+term == "val_sec2" ~ "Security (national)",
+term == "val_stim1" ~ "Stimulation",
+term == "val_conf2" ~ "Conformity",
+term == "val_trad1" ~ "Tradition",
+term == "val_bio2" ~ "Universalism (nature)",
+    TRUE ~ term  # Keep other variables as is
+  ))
+
+# Split data by model
+data_split <- split(tidy_results, tidy_results$model)
+
+# Define colors for each column
+colors <- c("red", "blue", "darkgreen")
+
+# Plot for the first column (with Y-axis annotations)
+# Plot for the first column (with Y-axis annotations)
+p1 <- dwplot(data_split[[1]], vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+  xlab("Coefficient Estimate") + 
+  ylab("") +
+  ggtitle(model_levels[1]) +  # Add label for the first column
+  theme_bw(base_size = 11) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 10),          # Keep Y-axis labels
+    axis.ticks.y = element_line(size = 0.5),        # Keep Y-axis ticks
+    strip.text = element_text(face = "bold"),
+    strip.background = element_blank(),             # Remove facet background
+    strip.placement = "outside"                     # Place strip labels outside
+  ) +
+  scale_color_manual(values = colors[1])+            # Add color for the first column
+xlim(-0.3, .3)
+# Plot for the other columns (without Y-axis annotations)
+plots <- lapply(seq_along(data_split)[-1], function(i) {
+  df <- data_split[[i]]
+  dwplot(df, vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+    xlab("Coefficient Estimate") + 
+    ylab("") +
+    ggtitle(model_levels[i]) +  # Add label for each column
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "none",
+      axis.text.y = element_blank(),               # Remove Y-axis labels
+      axis.ticks.y = element_blank(),              # Remove Y-axis ticks
+      strip.text = element_text(face = "bold"),
+      strip.background = element_blank(),          # Remove facet background
+      strip.placement = "outside"                  # Place strip labels outside
+    ) +
+    scale_color_manual(values = colors[i])+         # Add color for each column
+    xlim(-0.3, .3)
+})
+
+# Combine all plots into a single figure with equal column widths
+final_plot <- wrap_plots(p1, plots[[1]], plots[[2]], ncol = 3) +
+  plot_layout(widths = c(1, 1, 1))  # Equal widths for all columns
+
+# Print the combined plot
+print(final_plot)
+
+
+
+
+###VALUEs
+# Extract tidy coefficients and confidence intervals
+tidy_results <- tidy(MultiLogit, conf.int = TRUE, exponentiate = FALSE)
+
+# Filter for specific variables of interest
+selected_vars <- c("val_pow1","val_uni1","val_sec1","val_hed1","val_selfd1","val_bene1","val_ach1","val_sec2","val_stim1","val_conf2","val_trad1","val_bio2")
+
+tidy_results <- tidy_results %>%
+  filter(term %in% selected_vars)  # Keep only the specified variables
+
+# Manually define labels from the Stargazer output for MultiLogit
+model_levels <- c("(b) Growth-sceptical", "Growth-indifferent", "Pro-growth strong")
+
+# Add 'model' column by using the 'y.level' in tidy output
+tidy_results <- tidy_results %>%
+  mutate(model = factor(y.level, levels = model_levels))
+
+# Relabel predictors for better readability
+tidy_results <- tidy_results %>%
+  mutate(term = case_when(
+    term == "quota_gndr" ~ "Female",
+term == "quota_age" ~ "Age",
+term == "quota_group_educ" ~ "Education",
+term == "fit_55_knowl" ~ "Perceived climate \n policy knowledge",
+term == "clim_worry" ~ "Climate concern",
+term == "poli_ori" ~ "Right-wing political orientation",
+term == "gen_trust_cnty" ~ "Trust in national government",
+term == "gen_trust_EU" ~ "Trust in EU government",
+term == "hh_inc_wth" ~ "Household income",
+term == "rural_urban" ~ "Urban",
+term == "hh_size" ~ "Household size",
+term == "car_use" ~ "Car use",
+term == "flight_freq" ~ "Flight frequency",
+term == "sec_order_me" ~ "Personal support climate policies",
+term == "sec_order_polit" ~ "Perceived climate action",
+term == "ETS_gen_support" ~ "ETS support",
+term == "ETS_II_transp" ~ "ETS II for transport",
+term == "ETS_II_heat" ~ "ETS II for heating",
+term == "ETS_II_ag" ~ "ETS II for agriculture",
+term == "CBAM" ~ "CBAM support",
+term == "CNTY_pol_beef" ~ "Beef Tax",
+term == "CNTY_pol_taxff" ~ "Fossil Fuel Profits Tax",
+term == "CNTY_pol_taxfly" ~ "Flight Tickets Tax",
+term == "EU_pol_rail" ~ "EU rail fund",
+term == "CNTY_pol_insu" ~ "Mandatory Insulation",
+term == "car_phase_all" ~ "ICE car ban",
+term == "EU_pol_beef" ~ "Intensive cattle farming ban",
+term == "EU_pol_pfli" ~ "Private jet ban",
+term == "EU_pol_adban" ~ "Advertising ban",
+term == "val_pow1" ~ "Power (wealth)",
+term == "val_uni1" ~ "Universalism (equality)",
+term == "val_sec1" ~ "Security (personal)",
+term == "val_hed1" ~ "Hedonism",
+term == "val_selfd1" ~ "Self-direction",
+term == "val_bene1" ~ "Benevolence",
+term == "val_ach1" ~ "Achievement",
+term == "val_sec2" ~ "Security (national)",
+term == "val_stim1" ~ "Stimulation",
+term == "val_conf2" ~ "Conformity",
+term == "val_trad1" ~ "Tradition",
+term == "val_bio2" ~ "Universalism (nature)",
+    TRUE ~ term  # Keep other variables as is
+  ))
+
+# Split data by model
+data_split <- split(tidy_results, tidy_results$model)
+
+# Define colors for each column
+colors <- c("red", "blue", "darkgreen")
+
+# Plot for the first column (with Y-axis annotations)
+# Plot for the first column (with Y-axis annotations)
+p1 <- dwplot(data_split[[1]], vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+  xlab("Coefficient Estimate") + 
+  ylab("") +
+  ggtitle(model_levels[1]) +  # Add label for the first column
+  theme_bw(base_size = 11) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 10),          # Keep Y-axis labels
+    axis.ticks.y = element_line(size = 0.5),        # Keep Y-axis ticks
+    strip.text = element_text(face = "bold"),
+    strip.background = element_blank(),             # Remove facet background
+    strip.placement = "outside"                     # Place strip labels outside
+  ) +
+  scale_color_manual(values = colors[1])+            # Add color for the first column
+  xlim(-0.3, .3)
+
+# Plot for the other columns (without Y-axis annotations)
+plots <- lapply(seq_along(data_split)[-1], function(i) {
+  df <- data_split[[i]]
+  dwplot(df, vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+    xlab("Coefficient Estimate") + 
+    ylab("") +
+    ggtitle(model_levels[i]) +  # Add label for each column
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "none",
+      axis.text.y = element_blank(),               # Remove Y-axis labels
+      axis.ticks.y = element_blank(),              # Remove Y-axis ticks
+      strip.text = element_text(face = "bold"),
+      strip.background = element_blank(),          # Remove facet background
+      strip.placement = "outside"                  # Place strip labels outside
+    ) +
+    scale_color_manual(values = colors[i])+         # Add color for each column
+    xlim(-0.3, .3)
+})
+
+# Combine all plots into a single figure with equal column widths
+final_plot1 <- wrap_plots(p1, plots[[1]], plots[[2]], ncol = 3) +
+  plot_layout(widths = c(1, 1, 1))  # Equal widths for all columns
+
+# Print the combined plot
+print(final_plot1)
+
+
+
+
+
+
+###POLICIES
+# Extract tidy coefficients and confidence intervals
+tidy_results <- tidy(MultiLogit, conf.int = TRUE, exponentiate = FALSE)
+
+# Filter for specific variables of interest
+selected_vars <- c("ETS_gen_support","ETS_II_transp","ETS_II_heat","ETS_II_ag","CBAM","CNTY_pol_beef","CNTY_pol_taxff","CNTY_pol_taxfly","EU_pol_rail","CNTY_pol_insu","car_phase_all","EU_pol_beef","EU_pol_pfli","EU_pol_adban")
+
+tidy_results <- tidy_results %>%
+  filter(term %in% selected_vars)  # Keep only the specified variables
+
+# Manually define labels from the Stargazer output for MultiLogit
+model_levels <- c("(b) Growth-sceptical", "Growth-indifferent", "Pro-growth strong")
+
+# Add 'model' column by using the 'y.level' in tidy output
+tidy_results <- tidy_results %>%
+  mutate(model = factor(y.level, levels = model_levels))
+
+# Relabel predictors for better readability
+tidy_results <- tidy_results %>%
+  mutate(term = case_when(
+    term == "quota_gndr" ~ "Female",
+term == "quota_age" ~ "Age",
+term == "quota_group_educ" ~ "Education",
+term == "fit_55_knowl" ~ "Perceived climate \n policy knowledge",
+term == "clim_worry" ~ "Climate concern",
+term == "poli_ori" ~ "Right-wing political orientation",
+term == "gen_trust_cnty" ~ "Trust in national government",
+term == "gen_trust_EU" ~ "Trust in EU government",
+term == "hh_inc_wth" ~ "Household income",
+term == "rural_urban" ~ "Urban",
+term == "hh_size" ~ "Household size",
+term == "car_use" ~ "Car use",
+term == "flight_freq" ~ "Flight frequency",
+term == "sec_order_me" ~ "Personal support climate policies",
+term == "sec_order_polit" ~ "Perceived climate action",
+term == "ETS_gen_support" ~ "ETS support",
+term == "ETS_II_transp" ~ "ETS II for transport",
+term == "ETS_II_heat" ~ "ETS II for heating",
+term == "ETS_II_ag" ~ "ETS II for agriculture",
+term == "CBAM" ~ "CBAM support",
+term == "CNTY_pol_beef" ~ "Beef Tax",
+term == "CNTY_pol_taxff" ~ "Fossil Fuel Profits Tax",
+term == "CNTY_pol_taxfly" ~ "Flight Tickets Tax",
+term == "EU_pol_rail" ~ "EU rail fund",
+term == "CNTY_pol_insu" ~ "Mandatory Insulation",
+term == "car_phase_all" ~ "ICE car ban",
+term == "EU_pol_beef" ~ "Intensive cattle farming ban",
+term == "EU_pol_pfli" ~ "Private jet ban",
+term == "EU_pol_adban" ~ "Advertising ban",
+term == "val_pow1" ~ "Power (wealth)",
+term == "val_uni1" ~ "Universalism (equality)",
+term == "val_sec1" ~ "Security (personal)",
+term == "val_hed1" ~ "Hedonism",
+term == "val_selfd1" ~ "Self-direction",
+term == "val_bene1" ~ "Benevolence",
+term == "val_ach1" ~ "Achievement",
+term == "val_sec2" ~ "Security (national)",
+term == "val_stim1" ~ "Stimulation",
+term == "val_conf2" ~ "Conformity",
+term == "val_trad1" ~ "Tradition",
+term == "val_bio2" ~ "Universalism (nature)",
+    TRUE ~ term  # Keep other variables as is
+  ))
+
+# Split data by model
+data_split <- split(tidy_results, tidy_results$model)
+
+# Define colors for each column
+colors <- c("red", "blue", "darkgreen")
+
+# Plot for the first column (with Y-axis annotations)
+# Plot for the first column (with Y-axis annotations)
+p1 <- dwplot(data_split[[1]], vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+  xlab("Coefficient Estimate") + 
+  ylab("") +
+  ggtitle(model_levels[1]) +  # Add label for the first column
+  theme_bw(base_size = 11) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 10),          # Keep Y-axis labels
+    axis.ticks.y = element_line(size = 0.5),        # Keep Y-axis ticks
+    strip.text = element_text(face = "bold"),
+    strip.background = element_blank(),             # Remove facet background
+    strip.placement = "outside"                     # Place strip labels outside
+  ) +
+  scale_color_manual(values = colors[1]) +           # Add color for the first column
+xlim(-0.3, .3)
+
+# Plot for the other columns (without Y-axis annotations)
+plots <- lapply(seq_along(data_split)[-1], function(i) {
+  df <- data_split[[i]]
+  dwplot(df, vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+    xlab("Coefficient Estimate") + 
+    ylab("") +
+    ggtitle(model_levels[i]) +  # Add label for each column
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "none",
+      axis.text.y = element_blank(),               # Remove Y-axis labels
+      axis.ticks.y = element_blank(),              # Remove Y-axis ticks
+      strip.text = element_text(face = "bold"),
+      strip.background = element_blank(),          # Remove facet background
+      strip.placement = "outside"                  # Place strip labels outside
+    ) +
+    scale_color_manual(values = colors[i]) +        # Add color for each column
+    xlim(-0.3, .3)
+})
+
+# Combine all plots into a single figure with equal column widths
+final_plot2 <- wrap_plots(p1, plots[[1]], plots[[2]], ncol = 3) +
+  plot_layout(widths = c(1, 1, 1))  # Equal widths for all columns
+
+# Print the combined plot
+print(final_plot2)
+
+
+
+
+###DEMOGRAPHICS
+# Extract tidy coefficients and confidence intervals
+tidy_results <- tidy(MultiLogit, conf.int = TRUE, exponentiate = FALSE)
+
+# Filter for specific variables of interest
+selected_vars <- c("quota_gndr","quota_age","quota_group_educ","fit_55_knowl","sec_order_me",
+                        "sec_order_polit",
+                        "clim_worry","poli_ori","gen_trust_cnty","gen_trust_EU","hh_inc_wth","rural_urban","hh_size","car_use","flight_freq")
+
+tidy_results <- tidy_results %>%
+  filter(term %in% selected_vars)  # Keep only the specified variables
+
+# Manually define labels from the Stargazer output for MultiLogit
+model_levels <- c("(b) Growth-sceptical", "Growth-indifferent", "Pro-growth strong")
+
+# Add 'model' column by using the 'y.level' in tidy output
+tidy_results <- tidy_results %>%
+  mutate(model = factor(y.level, levels = model_levels))
+
+# Relabel predictors for better readability
+tidy_results <- tidy_results %>%
+  mutate(term = case_when(
+    term == "quota_gndr" ~ "Female",
+term == "quota_age" ~ "Age",
+term == "quota_group_educ" ~ "Education",
+term == "fit_55_knowl" ~ "Perceived climate \n policy knowledge",
+term == "clim_worry" ~ "Climate concern",
+term == "poli_ori" ~ "Right-wing political orientation",
+term == "gen_trust_cnty" ~ "Trust in national government",
+term == "gen_trust_EU" ~ "Trust in EU government",
+term == "hh_inc_wth" ~ "Household income",
+term == "rural_urban" ~ "Urban",
+term == "hh_size" ~ "Household size",
+term == "car_use" ~ "Car use",
+term == "flight_freq" ~ "Flight frequency",
+term == "sec_order_me" ~ "Personal support climate policies",
+term == "sec_order_polit" ~ "Perceived climate action",
+term == "ETS_gen_support" ~ "ETS support",
+term == "ETS_II_transp" ~ "ETS II for transport",
+term == "ETS_II_heat" ~ "ETS II for heating",
+term == "ETS_II_ag" ~ "ETS II for agriculture",
+term == "CBAM" ~ "CBAM support",
+term == "CNTY_pol_beef" ~ "Beef Tax",
+term == "CNTY_pol_taxff" ~ "Fossil Fuel Profits Tax",
+term == "CNTY_pol_taxfly" ~ "Flight Tickets Tax",
+term == "EU_pol_rail" ~ "EU rail fund",
+term == "CNTY_pol_insu" ~ "Mandatory Insulation",
+term == "car_phase_all" ~ "ICE car ban",
+term == "EU_pol_beef" ~ "Intensive cattle farming ban",
+term == "EU_pol_pfli" ~ "Private jet ban",
+term == "EU_pol_adban" ~ "Advertising ban",
+term == "val_pow1" ~ "Power (wealth)",
+term == "val_uni1" ~ "Universalism (equality)",
+term == "val_sec1" ~ "Security (personal)",
+term == "val_hed1" ~ "Hedonism",
+term == "val_selfd1" ~ "Self-direction",
+term == "val_bene1" ~ "Benevolence",
+term == "val_ach1" ~ "Achievement",
+term == "val_sec2" ~ "Security (national)",
+term == "val_stim1" ~ "Stimulation",
+term == "val_conf2" ~ "Conformity",
+term == "val_trad1" ~ "Tradition",
+term == "val_bio2" ~ "Universalism (nature)",
+    TRUE ~ term  # Keep other variables as is
+  ))
+
+# Split data by model
+data_split <- split(tidy_results, tidy_results$model)
+
+# Define colors for each column
+colors <- c("red", "blue", "darkgreen")
+
+# Plot for the first column (with Y-axis annotations)
+# Plot for the first column (with Y-axis annotations)
+p1 <- dwplot(data_split[[1]], vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+  xlab("Coefficient Estimate") + 
+  ylab("") +
+  ggtitle(model_levels[1]) +  # Add label for the first column
+  theme_bw(base_size = 11) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(size = 10),          # Keep Y-axis labels
+    axis.ticks.y = element_line(size = 0.5),        # Keep Y-axis ticks
+    strip.text = element_text(face = "bold"),
+    strip.background = element_blank(),             # Remove facet background
+    strip.placement = "outside"                     # Place strip labels outside
+  ) +
+  scale_color_manual(values = colors[1]) +           # Add color for the first column
+xlim(-0.3, .3)
+
+# Plot for the other columns (without Y-axis annotations)
+plots <- lapply(seq_along(data_split)[-1], function(i) {
+  df <- data_split[[i]]
+  dwplot(df, vline = geom_vline(xintercept = 0, colour = "black", linetype = 2)) +
+    xlab("Coefficient Estimate") + 
+    ylab("") +
+    ggtitle(model_levels[i]) +  # Add label for each column
+    theme_bw(base_size = 11) +
+    theme(
+      legend.position = "none",
+      axis.text.y = element_blank(),               # Remove Y-axis labels
+      axis.ticks.y = element_blank(),              # Remove Y-axis ticks
+      strip.text = element_text(face = "bold"),
+      strip.background = element_blank(),          # Remove facet background
+      strip.placement = "outside"                  # Place strip labels outside
+    ) +
+    scale_color_manual(values = colors[i])+        # Add color for each column
+    xlim(-0.3, .3)
+         
+})
+
+# Combine all plots into a single figure with equal column widths
+final_plot3 <- wrap_plots(p1, plots[[1]], plots[[2]], ncol = 3) +
+  plot_layout(widths = c(1, 1, 1))  # Equal widths for all columns
+
+# Print the combined plot
+print(final_plot3)
+
+install.packages("skimr")
+library("skimr")
+skim(data_cleaned)
+
+```
+
+
+
+
+```{r OLS separate, echo=FALSE}
+
+
+
+OLS11 = lm(WeightedGrowthSupport ~ val_conf2 +  val_sec2 +  val_sec1 +  val_trad1 +  val_selfd1 +  val_stim1 +  val_ach1 +  val_hed1 +  val_pow1 +  val_bene1 +  val_uni1 +  val_bio2
+                       + cntry
+
+                        , data=data_cleaned)
+
+
+#summary(MultiLogit)
+stargazer(OLS11, type="text")
+
+
+
+
+
+dwplot(OLS11,vars_order=c(                        "val_conf2","val_sec2","val_sec1","val_trad1","val_selfd1","val_stim1","val_ach1","val_hed1","val_pow1","val_bene1","val_uni1","val_bio2"
+                        ),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+
+            val_conf2 = "Conformity",
+            val_sec2 = "Security (national)",
+            val_sec1 = "Security (personal)",
+            val_trad1 = "Tradition",
+            val_selfd1 = "Self-direction",
+            val_stim1 = "Stimulation",
+            val_ach1 = "Achievement",
+            val_hed1 = "Hedonism",
+            val_pow1 = "Power (wealth)",
+            val_bene1 = "Benevolence",
+            val_uni1 = "Universalism (equality)",
+            val_bio2 = "Universalism (nature)"
+        )
+    ) +
+   xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    )
+
+
+
+OLS22 = lm(WeightedGrowthSupport ~ ETS_gen_support +  ETS_II_transp + ETS_II_heat + ETS_II_ag +
+                        CBAM  + CNTY_pol_beef + CNTY_pol_taxff + CNTY_pol_taxfly + EU_pol_rail + CNTY_pol_insu +
+                        car_phase_all + EU_pol_beef  + EU_pol_pfli  + EU_pol_adban
+                       + cntry
+
+                        , data=data_cleaned)
+
+
+#summary(MultiLogit)
+stargazer(OLS22, type="text")
+
+dwplot(OLS22,vars_order=c("ETS_gen_support","ETS_II_transp","ETS_II_heat","ETS_II_ag","CBAM","CNTY_pol_beef","CNTY_pol_taxff","CNTY_pol_taxfly","EU_pol_rail","CNTY_pol_insu","car_phase_all","EU_pol_beef","EU_pol_pfli","EU_pol_adban"),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+
+            ETS_gen_support = "ETS support",
+            ETS_II_transp = "ETS II for transport",
+            ETS_II_heat = "ETS II for heating",
+            ETS_II_ag = "ETS II for agriculture",
+            CBAM = "CBAM support",
+            EU_pol_rail = "EU rail fund",
+            car_phase_all = "ICE car ban",
+            EU_pol_beef = "Intensive cattle farming ban",
+            EU_pol_pfli = "Private jet ban",
+            EU_pol_adban = "Advertising ban"
+
+        )
+    ) +
+   xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    )
+
+
+
+
+OLS33 = lm(WeightedGrowthSupport ~ quota_gndr + quota_age + quota_group_educ + hh_inc_wth + rural_urban + hh_size + car_use + flight_freq + clim_worry + poli_ori + gen_trust_cnty + gen_trust_EU + fit_55_knowl + sec_order_me + sec_order_polit
+                        + cntry
+
+                        , data=data_cleaned)
+
+
+#summary(MultiLogit)
+stargazer(OLS33, type="text")
+dwplot(OLS33,vars_order=c("quota_gndr","quota_age","quota_group_educ","hh_inc_wth","rural_urban","hh_size","car_use","flight_freq","clim_worry","poli_ori","gen_trust_cnty","gen_trust_EU","fit_55_knowl","sec_order_me","sec_order_polit"),
+       vline = geom_vline(
+           xintercept = 0,
+           colour = "black",
+           linetype = 2
+       ))%>% # plot line at zero _behind_coefs
+    relabel_predictors(
+        c(
+            quota_gndr = "Female",
+            quota_age = "Age",
+            quota_group_educ = "Education",
+            hh_inc_wth= "Household income",
+            rural_urban = "Urban",
+            hh_size = "Household size",
+            car_use= "Car use",
+            flight_freq="Flight frequency",
+            clim_worry = "Climate concern",
+            poli_ori = "Right-wing political orientation",
+            gen_trust_cnty = "Trust in national government",
+            gen_trust_EU = "Trust in EU government",
+            fit_55_knowl = "Climate policy knowledge",
+            sec_order_me = "Personal support climate policies",
+            sec_order_polit = "Perceived climate action"
+                )
+    ) +
+   xlab("Coefficient Estimate") + ylab("") + theme_bw(base_size =11) +
+    theme(
+        plot.title = element_text(face = "bold"),
+        legend.position = "none",
+        legend.justification = c(0, 0),
+        legend.background = element_rect(colour = "black"),
+        legend.title.align = .5,
+        legend.title = element_blank()
+    )
+
+
+
+```
+
